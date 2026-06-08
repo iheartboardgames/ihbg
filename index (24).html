@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Heart Board Games — Reviews, Streams & Daily Games</title>
+<meta name="description"        content="Board game reviews, playthroughs, streams, and daily digital games — for fans at every level. Watch us on YouTube, Twitch, and TikTok.">
+
+<!-- Favicon: purple heart -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%23A328D3' d='M50 85C50 85 8 56 8 30 8 17 18 8 31 8c8 0 15 5 19 13 4-8 11-13 19-13 13 0 23 9 23 22 0 26-42 55-42 55z'/></svg>">
+
+<!-- Open Graph -->
+<meta property="og:type"        content="website">
+<meta property="og:url"         content="https://iheartboardgames.com">
+<meta property="og:title"       content="I Heart Board Games">
+<meta property="og:description" content="Board game reviews, playthroughs, streams, and daily digital games — for fans at every level.">
+<meta property="og:image"       content="https://cdn.jsdelivr.net/gh/iheartboardgames/ihbg@main/I%20Heart%20Logo%20011520.png">
+
+<!-- Twitter / X Card -->
+<meta name="twitter:card"        content="summary_large_image">
+<meta name="twitter:title"       content="I Heart Board Games">
+<meta name="twitter:description" content="Board game reviews, playthroughs, streams, and daily digital games — for fans at every level.">
+<meta name="twitter:image"       content="https://cdn.jsdelivr.net/gh/iheartboardgames/ihbg@main/I%20Heart%20Logo%20011520.png">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Bungee&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #08080f;
+    --surface:  #0d0d1a;
+    --surface2: #121220;
+    --border:   #1e1e30;
+    --border2:  #2a2a40;
+    --text:     #e8e8f0;
+    --muted:    #888890;
+    --subtle:   #666672;
+    --red:      #FF3D3D;
+    --yellow:   #FFFA40;
+    --purple:   #A328D3;
+    --teal:     #25FFF1;
+    --pink:     #FF78FF;
+    --blue:     #5DBBFF;
+    --orange:   #FF8C42;
+    --font-display: 'Bungee', cursive;
+    --font-body:    'Barlow', sans-serif;
+  }
+
+  html { height: 100%; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  a { text-decoration: none; color: inherit; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── LIVE BANNER ── */
+  #live-banner {
+    display: none; flex-shrink: 0;
+    background: linear-gradient(135deg,#130828,#08161f);
+    border-bottom: 1px solid var(--purple);
+    padding: 10px 24px; align-items: center; gap: 16px;
+    animation: slideDown .35s ease; z-index: 100;
+  }
+  #live-banner.visible { display: flex; }
+  @keyframes slideDown { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
+  .live-dot { background:var(--red);color:#fff;font-size:10px;font-weight:900;letter-spacing:.12em;padding:3px 8px;border-radius:4px;animation:pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .live-text { font-size:14px;color:#bbb; }
+  .live-text strong { color:var(--purple); }
+  .live-watch { margin-left:auto;background:var(--purple);color:#fff;padding:7px 18px;border-radius:7px;font-size:13px;font-weight:800;transition:filter .15s;white-space:nowrap; }
+  .live-watch:hover { filter:brightness(1.15); }
+
+  /* ── PAGE GRID ── */
+  .page-wrap {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 580px 1fr;
+    overflow: hidden;
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  .left-col {
+    position: relative;
+    height: 100%; overflow-y: auto;
+    background: radial-gradient(ellipse at 40% 25%, #1a0830 0%, #0d0818 60%, #090610 100%);
+    border-right: 1px solid #2a1a40;
+    padding: 18px 22px 14px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .left-col::-webkit-scrollbar { width: 3px; }
+  .left-col > * { position: relative; z-index: 1; }
+
+  #heartCanvas {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  body.light .left-col {
+    background: radial-gradient(ellipse at 40% 25%, #f0e6ff 0%, #ede8f8 60%, #e8e4f4 100%);
+    border-right: 1px solid #d0c0e8;
+  }
+
+  /* Logo + text row */
+  .logo-text-row { display: flex; gap: 14px; align-items: flex-start; }
+  .logo-img { width: 189px; flex-shrink: 0; height: auto; display: block; }
+  .brand-text { font-size: 14.5px; color: var(--muted); line-height: 1.45; display: flex; flex-direction: column; gap: 5px; }
+  .brand-text p { margin: 0; }
+  .brand-text strong { color: var(--text); }
+  .brand-text a { font-weight: 800; }
+
+  /* Section label */
+  .section-label { font-family:var(--font-display);font-size:10px;letter-spacing:.22em;color:var(--subtle);margin-bottom:7px;text-transform:uppercase; }
+
+  /* Stats — 3×2 grid */
+  .stats-grid { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+  .stat-card {
+    background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    padding:9px 11px;transition:transform .18s, filter .18s;
+  }
+  .stat-card:hover { transform:translateY(-2px); }
+  .stat-card { cursor: pointer; }
+  a.stat-card { color: inherit; display: block; text-decoration: none; }
+  .stat-count { font-family:var(--font-display);font-size:21px;line-height:1;margin-bottom:3px; }
+  .stat-count.icon { font-size:18px; font-family: var(--font-body); }
+  .stat-label { font-size:11px;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em; }
+  .stats-updated { font-size:10px;color:var(--subtle);text-align:right;margin-top:4px; }
+
+  /* Games — 2 col grid */
+  .games-grid { display:grid;grid-template-columns:1fr 1fr;gap:5px; }
+  .game-link {
+    display:flex;align-items:flex-start;gap:8px;padding:8px 10px;
+    background:#140825;border:1px solid #2a1050;border-radius:7px;
+    color:var(--text);transition:background .15s,border-color .15s;
+  }
+  .game-link:hover { background:#3d1570;border-color:#5a20a0; }
+  .game-emoji { flex-shrink:0;font-size:18px;margin-top:3px; }
+  .game-info  { display:flex;flex-direction:column;gap:3px;min-width:0; }
+  .game-name  { font-family:var(--font-body);font-size:17px;font-weight:700;line-height:1.1; }
+  .game-desc  { font-size:11px;color:var(--muted);line-height:1.35;font-weight:400;white-space:normal; }
+
+  /* Social — 4×2 grid, stat-card style */
+  .social-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:6px; }
+  .social-btn {
+    display:block;padding:10px 4px;
+    background:var(--surface2);border:1px solid;border-radius:8px;
+    font-family:var(--font-body);font-size:16px;font-weight:700;text-align:center;
+    transition:filter .15s,transform .15s;
+  }
+  .social-btn:hover { filter:brightness(1.2);transform:translateY(-1px); }
+
+  /* Footer */
+  .left-footer { margin-top:auto;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--subtle);text-align:center;line-height:1.8; }
+  .left-footer a { color:var(--subtle);transition:color .15s; }
+  .left-footer a:hover { color:var(--muted); }
+
+  /* ── RIGHT AREA ── */
+  .right-area {
+    display: grid;
+    grid-template-columns: minmax(324px,1fr) 407px 345px;
+    height: 100%; overflow: hidden;
+  }
+  .yt-col, .ig-col, .tt-col { height: 100%; overflow-y: auto; }
+
+  /* ── YOUTUBE column ── */
+  .yt-col { padding:24px 20px 48px 22px;border-right:1px solid var(--border);background:#140825; }
+
+  .col-header { margin-bottom:18px; }
+  .col-title  { font-family:var(--font-display);font-size:17px;margin-bottom:4px; }
+  .col-sub    { font-size:11px;color:var(--subtle); }
+  .col-sub a  { font-weight:700; }
+
+  #twitch-live-block { display:none;margin-bottom:22px; }
+  .twitch-live-header { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+  .twitch-live-label  { font-size:13px;color:var(--muted); }
+  .twitch-open-link   { margin-left:auto;font-size:12px;color:var(--purple);font-weight:800;transition:filter .15s; }
+  .twitch-open-link:hover { filter:brightness(1.2); }
+  .twitch-frame { width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:1px solid var(--purple); }
+  .twitch-frame iframe { width:100%;height:100%;border:none;display:block; }
+
+  .video-feed { display:flex;flex-direction:column;gap:10px; }
+  .video-card {
+    display:flex;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;overflow:hidden;cursor:pointer;
+    transition:border-color .2s,transform .2s;
+  }
+  .video-card:hover { border-color:var(--border2);transform:translateY(-2px); }
+  .video-thumb-wrap { width:170px;min-width:170px;height:96px;overflow:hidden;position:relative;flex-shrink:0; }
+  .video-thumb { width:100%;height:100%;display:flex;align-items:center;justify-content:center;transition:transform .3s; }
+  .video-card:hover .video-thumb { transform:scale(1.05); }
+  .play-btn { width:32px;height:32px;background:rgba(0,0,0,.45);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff; }
+  .video-tag { position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.75);color:#fff;font-size:9px;font-weight:900;letter-spacing:.08em;padding:2px 5px;border-radius:3px; }
+  .video-info { padding:10px 13px 10px 11px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:5px; }
+  .video-title { font-size:14px;font-weight:700;line-height:1.35;color:var(--text); }
+  .video-meta  { font-size:12px;color:var(--subtle); }
+
+  .see-all-wrap { text-align:center;padding-top:20px;border-top:1px solid var(--border);margin-top:12px; }
+  .see-all-btn { display:inline-block;background:var(--red);color:#fff;padding:10px 24px;border-radius:8px;font-family:var(--font-display);font-size:12px;transition:filter .15s; }
+  .see-all-btn:hover { filter:brightness(1.1); }
+
+  /* ── INSTAGRAM column ── */
+  .ig-col { padding:24px 16px 48px;background:#ede8f8; }
+  .ig-col .col-title { color:#1a0830; }
+  .ig-col .col-sub   { color:#5a3878; }
+  .ig-feed { display:flex;flex-direction:column;gap:12px;margin-bottom:6px; }
+  .ig-feed .instagram-media {
+    min-width: unset !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+  }
+  .ig-placeholder { background:#e0d8f0;border:1px solid #c0b0d8;border-radius:10px;padding:28px 16px;text-align:center;font-size:12px;color:#5a3878; }
+  .ig-follow-wrap { text-align:center;padding-top:16px;border-top:1px solid var(--border);margin-top:6px; }
+  .ig-follow-btn { display:inline-block;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;padding:10px 20px;border-radius:8px;font-family:var(--font-display);font-size:11px;transition:filter .15s; }
+  .ig-follow-btn:hover { filter:brightness(1.1); }
+
+  /* ── TIKTOK column ── */
+  .tt-col { padding:24px 16px 48px;background:#ede8f8;border-right:1px solid #c8b8e8; }
+  .tt-col .col-title { color:#1a0830; }
+  .tt-col .col-sub   { color:#5a3878; }
+  .tt-feed { display:flex;flex-direction:column;gap:16px; }
+  .tt-follow-wrap { text-align:center;padding-top:16px;border-top:1px solid var(--border);margin-top:6px; }
+  .tt-follow-btn { display:inline-block;background:#1a0830;color:var(--pink);border:1px solid var(--pink);padding:10px 20px;border-radius:8px;font-family:var(--font-display);font-size:11px;transition:filter .15s; }
+  .tt-follow-btn:hover { filter:brightness(1.2); }
+
+  /* ── LIGHT MODE ── */
+  body.light {
+    --bg:      #f2f2f6;
+    --surface: #ffffff;
+    --surface2:#ebebf2;
+    --border:  #d4d4e4;
+    --border2: #b8b8cc;
+    --text:    #0a0a14;
+    --muted:   #505060;
+    --subtle:  #7a7a88;
+  }
+  body.light .yt-col { background: #f8f8fc; }
+  body.light .ig-col { background: #f0eafc; }
+  body.light .tt-col { background: #f0eafc; }
+  body.light #live-banner { background: #ede8f8; }
+
+  /* ── MODE TOGGLE ── */
+  #mode-toggle {
+    position: fixed; bottom: 16px; left: 16px; z-index: 9999;
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 8px 14px; font-family: var(--font-body); font-size: 11px;
+    font-weight: 700; color: var(--muted); cursor: pointer; transition: background .15s;
+  }
+  #mode-toggle:hover { background: var(--border); }
+
+  /* ── DEV TOGGLE ── */
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1540px) { .right-area { grid-template-columns: minmax(300px,1fr) 380px 320px; } }
+  @media (max-width: 1340px) { .right-area { grid-template-columns: minmax(300px,1fr) 320px; } .tt-col { display:none; } }
+  @media (max-width: 1080px) { .page-wrap { grid-template-columns: 400px 1fr; } .right-area { grid-template-columns: 1fr 280px; } }
+  @media (max-width: 900px) {
+    body { height:auto;overflow:auto; }
+    .page-wrap { grid-template-columns:1fr;height:auto;overflow:visible; }
+    .left-col { height:auto; }
+    .right-area { grid-template-columns:1fr;height:auto;overflow:visible; }
+    .yt-col,.ig-col,.tt-col { height:auto;overflow:visible;display:block; }
+    .tt-col,.ig-col { display:block; }
+  }
+</style>
+</head>
+<body>
+
+<button id="mode-toggle" onclick="toggleMode()">☀ Light</button>
+
+<div id="live-banner">
+  <span class="live-dot">● LIVE</span>
+  <span class="live-text"><strong>heartboardgames</strong> is live on Twitch right now!</span>
+  <a href="https://twitch.tv/heartboardgames" target="_blank" class="live-watch">Watch Live →</a>
+</div>
+
+<div class="page-wrap">
+
+  <!-- ── LEFT SIDEBAR ── -->
+  <aside class="left-col">
+
+    <canvas id="heartCanvas"></canvas>
+
+    <!-- Logo + description side by side -->
+    <div class="logo-text-row">
+      <img
+        src="https://cdn.jsdelivr.net/gh/iheartboardgames/ihbg@main/I%20Heart%20Logo%20011520.png"
+        alt="I Heart Board Games"
+        class="logo-img">
+      <div class="brand-text">
+        <p>We're your go-to channel for fun, engaging, and honest board game videos and shorts on
+          <a href="http://youtube.com/iheartboardgames" target="_blank" style="color:var(--red)">YouTube</a>,
+          <a href="http://twitch.tv/heartboardgames" target="_blank" style="color:var(--purple)">Twitch</a>,
+          <a href="https://www.tiktok.com/@IHeartBoardGames" target="_blank" style="color:var(--pink)">TikTok</a>,
+          and more! Whether you're a seasoned gamer or just starting out, our content is packed with reviews, playthroughs, and lively discussions.</p>
+      </div>
+    </div>
+    <!-- STATS — 3×2 grid, email balances Redbubble -->
+    <div>
+      <div class="section-label">Live Stats</div>
+      <div class="stats-grid">
+        <a href="http://youtube.com/iheartboardgames" target="_blank" class="stat-card" style="border-color:#FF3D3D33">
+          <div class="stat-count" id="yt-count" style="color:var(--red)">3.32K</div>
+          <div class="stat-label">YouTube Subs</div>
+        </a>
+        <a href="https://www.tiktok.com/@IHeartBoardGames" target="_blank" class="stat-card" style="border-color:#FF78FF33">
+          <div class="stat-count" id="tt-count" style="color:var(--pink)">2.8K</div>
+          <div class="stat-label">TikTok Follows</div>
+        </a>
+        <a href="http://twitch.tv/heartboardgames" target="_blank" class="stat-card" style="border-color:#A328D333">
+          <div class="stat-count" id="twitch-count" style="color:var(--purple)">1.91K</div>
+          <div class="stat-label">Twitch Follows</div>
+        </a>
+        <a href="https://www.instagram.com/heartboardgames/" target="_blank" class="stat-card" style="border-color:#25FFF133">
+          <div class="stat-count" id="ig-count" style="color:var(--teal)">558</div>
+          <div class="stat-label">Instagram Follows</div>
+        </a>
+        <a href="https://www.redbubble.com/people/HeartBoardGames/" target="_blank" class="stat-card" style="border-color:#FFFA4033">
+          <div class="stat-count" id="rb-count" style="color:var(--yellow)">650+</div>
+          <div class="stat-label">Redbubble Sold</div>
+        </a>
+        <a href="mailto:heartboardgames@gmail.com" class="stat-card" style="border-color:#aaa3;">
+          <div class="stat-count icon" style="color:#888">💌</div>
+          <div class="stat-label">Email Us</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- DAILY GAMES — 2×2 -->
+    <div>
+      <div class="section-label">Play our Daily Games</div>
+      <div class="games-grid">
+        <a href="https://iheartboardgames.com/dailycover" target="_blank" class="game-link">
+          <span class="game-emoji">🎭</span>
+          <span class="game-info">
+            <span class="game-name">Daily Cover</span>
+            <span class="game-desc">Guess the game from its cover.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/dailyrulebook" target="_blank" class="game-link">
+          <span class="game-emoji">📖</span>
+          <span class="game-info">
+            <span class="game-name">Daily Rulebook</span>
+            <span class="game-desc">Guess the game from vague rulebook clues.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/dailyranking" target="_blank" class="game-link">
+          <span class="game-emoji">📊</span>
+          <span class="game-info">
+            <span class="game-name">Daily Ranking</span>
+            <span class="game-desc">Guess which game ranks higher on BGG!</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/dailyclover" target="_blank" class="game-link">
+          <span class="game-emoji">🍀</span>
+          <span class="game-info">
+            <span class="game-name">Daily Clover</span>
+            <span class="game-desc">A daily puzzle based on So Clover.</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- MULTIPLAYER GAMES — 2×3, email balances A Message From Afar -->
+    <div>
+      <div class="section-label">Play our Multiplayer Games</div>
+      <div class="games-grid">
+        <a href="https://iheartboardgames.com/wordsslam" target="_blank" class="game-link">
+          <span class="game-emoji">💬</span>
+          <span class="game-info">
+            <span class="game-name">Words Slam</span>
+            <span class="game-desc">4+ players guess words using hint cards. Inspired by Word Slam from Kosmos.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/bearwords" target="_blank" class="game-link">
+          <span class="game-emoji">🐻</span>
+          <span class="game-info">
+            <span class="game-name">Bearwords</span>
+            <span class="game-desc">5+ players find traitors while guessing a word. Inspired by Werewords.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/cleversquared" target="_blank" class="game-link">
+          <span class="game-emoji">🟩</span>
+          <span class="game-info">
+            <span class="game-name">Clever Squared</span>
+            <span class="game-desc">2+ players create words that target other words. Inspired by So Clover.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/mindandmoney" target="_blank" class="game-link">
+          <span class="game-emoji">🎲</span>
+          <span class="game-info">
+            <span class="game-name">Mind &amp; Money</span>
+            <span class="game-desc">2+ players answer then bet on who's closest. Based on Wits &amp; Wagers.</span>
+          </span>
+        </a>
+        <a href="https://iheartboardgames.com/afar" target="_blank" class="game-link">
+          <span class="game-emoji">🪐</span>
+          <span class="game-info">
+            <span class="game-name">A Message From Afar</span>
+            <span class="game-desc">2+ players decode alien languages. Based on A Message From The Stars by AllPlay.</span>
+          </span>
+        </a>
+        <a href="mailto:heartboardgames@gmail.com" class="game-link">
+          <span class="game-emoji">💌</span>
+          <span class="game-info">
+            <span class="game-name">Email Us</span>
+            <span class="game-desc">Game Publisher? Designer? Let's feature your game! We'd love to hear from you.</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- FIND US — 4×2, stat-card style -->
+    <div>
+      <div class="section-label">Find Us</div>
+      <div class="social-grid">
+        <a href="http://youtube.com/iheartboardgames"          target="_blank" class="social-btn" style="color:var(--red);border-color:#FF3D3D44;background:#FF3D3D10">YouTube</a>
+        <a href="https://www.tiktok.com/@IHeartBoardGames"     target="_blank" class="social-btn" style="color:var(--pink);border-color:#FF78FF44;background:#FF78FF10">TikTok</a>
+        <a href="http://twitch.tv/heartboardgames"             target="_blank" class="social-btn" style="color:var(--purple);border-color:#A328D344;background:#A328D310">Twitch</a>
+        <a href="https://www.instagram.com/heartboardgames/"   target="_blank" class="social-btn" style="color:var(--teal);border-color:#25FFF144;background:#25FFF110">Instagram</a>
+        <a href="http://patreon.com/iheartboardgames"          target="_blank" class="social-btn" style="color:var(--yellow);border-color:#FFFA4044;background:#FFFA4010">Patreon</a>
+        <a href="https://bsky.app/profile/iheartboardgames.bsky.social" target="_blank" class="social-btn" style="color:var(--blue);border-color:#5DBBFF44;background:#5DBBFF10">Bluesky</a>
+        <a href="http://facebook.com/heartboardgames"          target="_blank" class="social-btn" style="color:#4589FF;border-color:#4589FF44;background:#4589FF10">Facebook</a>
+        <a href="mailto:heartboardgames@gmail.com"                        class="social-btn" style="color:#aaa;border-color:#aaa4;background:#aaa1">Email</a>
+      </div>
+    </div>
+
+    <div class="left-footer">
+      <a href="http://patreon.com/iheartboardgames" target="_blank">Support us on Patreon</a>
+    </div>
+
+  </aside>
+
+  <!-- ── RIGHT CONTENT AREA ── -->
+  <div class="right-area">
+
+    <section class="yt-col">
+      <div id="twitch-live-block">
+        <div class="twitch-live-header">
+          <span class="live-dot">● LIVE NOW</span>
+          <span class="twitch-live-label">heartboardgames on Twitch</span>
+          <a href="https://twitch.tv/heartboardgames" target="_blank" class="twitch-open-link">Open on Twitch →</a>
+        </div>
+        <div class="twitch-frame">
+          <iframe
+            src="https://player.twitch.tv/?channel=heartboardgames&parent=iheartboardgames.com&parent=iheartboardgames.netlify.app&autoplay=false"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      <div class="col-header">
+        <h2 class="col-title">Latest Videos</h2>
+        <p class="col-sub">Auto-updating · <a href="http://youtube.com/iheartboardgames" target="_blank" style="color:var(--red)">Subscribe on YouTube</a></p>
+      </div>
+      <div class="video-feed" id="video-feed"></div>
+      <div class="see-all-wrap">
+        <a href="http://youtube.com/iheartboardgames" target="_blank" class="see-all-btn">See All on YouTube →</a>
+      </div>
+    </section>
+
+    <section class="tt-col">
+      <div class="col-header">
+        <h2 class="col-title">TikTok</h2>
+        <p class="col-sub">Follow <a href="https://www.tiktok.com/@IHeartBoardGames" target="_blank" style="color:var(--pink)">@IHeartBoardGames</a></p>
+      </div>
+      <div class="tt-feed" id="tt-feed">
+        <!-- populated from Firebase website/tiktok_videos -->
+      </div>
+      <div class="tt-follow-wrap">
+        <a href="https://www.tiktok.com/@IHeartBoardGames" target="_blank" class="tt-follow-btn">Follow on TikTok →</a>
+      </div>
+    </section>
+
+    <section class="ig-col">
+      <div class="col-header">
+        <h2 class="col-title">Instagram</h2>
+        <p class="col-sub">Follow <a href="https://www.instagram.com/heartboardgames/" target="_blank" style="color:var(--orange)">@heartboardgames</a></p>
+      </div>
+      <div class="ig-feed" id="ig-feed"></div>
+      <div class="ig-follow-wrap">
+        <a href="https://www.instagram.com/heartboardgames/" target="_blank" class="ig-follow-btn">Follow on Instagram →</a>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  // ── FIREBASE / WEBSITE CONFIG ──
+  firebase.initializeApp({
+    apiKey:            "AIzaSyB-qD6srurRrSGVm8GbbuJpY5NCPjeE7xk",
+    authDomain:        "daily-rulebook.firebaseapp.com",
+    databaseURL:       "https://daily-rulebook-default-rtdb.firebaseio.com",
+    projectId:         "daily-rulebook",
+    storageBucket:     "daily-rulebook.firebasestorage.app",
+    messagingSenderId: "492131584568",
+    appId:             "1:492131584568:web:1fff046e5b4a15f14af4cd"
+  });
+  const wsDb = firebase.database();
+
+  function renderTikToks(ids) {
+    const defaults = ['7387560975857159454','6961620575504649478','7245332864194186539'];
+    const list = ids && ids.length ? ids : defaults;
+    document.getElementById('tt-feed').innerHTML = list.map(id => `
+      <div style="overflow:hidden;border-radius:10px;line-height:0;">
+        <iframe src="https://www.tiktok.com/embed/v2/${id}"
+                scrolling="no"
+                style="width:100%;border:none;display:block;"
+                height="740" allowfullscreen></iframe>
+      </div>
+    `).join('');
+  }
+
+  async function loadWebsiteConfig() {
+  function renderInstagram(postUrls) {
+    const feed = document.getElementById('ig-feed');
+    if (!postUrls || !postUrls.length) {
+      feed.innerHTML = '<div class="ig-placeholder">No posts saved yet.<br>Add some in the admin panel.</div>';
+      return;
+    }
+    feed.innerHTML = postUrls.map(url => `
+      <blockquote class="instagram-media"
+        data-instgrm-captioned
+        data-instgrm-permalink="${url}?utm_source=ig_embed"
+        data-instgrm-version="14"
+        style="width:100%;min-width:unset;max-width:100%;margin:0;border-radius:10px;">
+        <div style="padding:20px;text-align:center;">
+          <a href="${url}" target="_blank"
+             style="color:var(--muted);font-size:12px;">Loading post…</a>
+        </div>
+      </blockquote>
+    `).join('');
+    // Trigger Instagram embed processing
+    if (window.instgrm) {
+      window.instgrm.Embeds.process();
+    } else {
+      const s = document.createElement('script');
+      s.src = '//www.instagram.com/embed.js';
+      s.async = true;
+      document.body.appendChild(s);
+    }
+  }
+
+    try {
+      // Manual stats
+      const statsSnap = await wsDb.ref('website/stats').once('value');
+      const stats = statsSnap.val() || {};
+      if (stats.tiktok)    document.getElementById('tt-count').textContent     = stats.tiktok;
+      if (stats.twitch)    document.getElementById('twitch-count').textContent  = stats.twitch;
+      if (stats.instagram) document.getElementById('ig-count').textContent      = stats.instagram;
+      if (stats.redbubble) document.getElementById('rb-count').textContent      = stats.redbubble;
+
+      // TikTok videos
+      const ttSnap = await wsDb.ref('website/tiktok_videos').once('value');
+      renderTikToks(ttSnap.val() ? Object.values(ttSnap.val()) : null);
+
+      // Instagram embeds
+      const igSnap = await wsDb.ref('website/instagram_posts').once('value');
+      renderInstagram(igSnap.val() ? Object.values(igSnap.val()) : null);
+
+    } catch(e) {
+      console.warn('Website config unavailable, using defaults.', e);
+      renderTikToks(null);
+      renderInstagram(null);
+    }
+  }
+  // ── YOUTUBE API ──
+  const YT_KEY    = 'AIzaSyB0P3PAt_XD6e6VTpQjN4PcC85kovcCxDg';
+  const YT_HANDLE = 'iheartboardgames';
+
+  function fmtCount(n) {
+    n = parseInt(n) || 0;
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+    return n.toString();
+  }
+
+  function timeAgo(dateStr) {
+    const s = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (s < 60)                     return 'just now';
+    if (s < 3600)                   return Math.floor(s/60) + 'm ago';
+    if (s < 86400)                  return Math.floor(s/3600) + 'h ago';
+    const d = Math.floor(s/86400);
+    if (d < 7)                      return d + ' day' + (d>1?'s':'') + ' ago';
+    const w = Math.floor(d/7);
+    if (w < 5)                      return w + ' week' + (w>1?'s':'') + ' ago';
+    const m = Math.floor(d/30);
+    if (m < 12)                     return m + ' month' + (m>1?'s':'') + ' ago';
+    const y = Math.floor(d/365);
+    return y + ' year' + (y>1?'s':'') + ' ago';
+  }
+
+  function renderVideos(videos) {
+    document.getElementById('video-feed').innerHTML = videos.map(v => `
+      <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" class="video-card">
+        <div class="video-thumb-wrap">
+          <img src="${v.thumb}" alt="${v.title}"
+               style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>
+        <div class="video-info">
+          <div class="video-title">${v.title}</div>
+          <div class="video-meta">${fmtCount(v.views)} views · ${timeAgo(v.date)}</div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  // Render mock data immediately so the column isn't empty while loading
+  const MOCK_VIDEOS = [
+    { id:'',title:"Wingspan Review — Is It Really Worth the Hype?",   views:18200, date:'2025-12-01', thumb:'', g:["#4158D0","#C850C0"] },
+    { id:'',title:"Top 10 Gateway Games for New Players",             views:31500, date:'2025-11-24', thumb:'', g:["#0093E9","#80D0C7"] },
+    { id:'',title:"Brass Birmingham — Why It Tops BGG",               views:9700,  date:'2025-11-17', thumb:'', g:["#56ab2f","#a8e063"] },
+    { id:'',title:"LIVE Board Game Night with the Community!",        views:4100,  date:'2025-11-10', thumb:'', g:["#FF6B6B","#FFE66D"] },
+    { id:'',title:"Agricola vs Caverna — Which Should You Buy?",      views:22300, date:'2025-10-27', thumb:'', g:["#A18CD1","#FBC2EB"] },
+    { id:'',title:"Dominion: How to Win Every Game",                  views:44800, date:'2025-10-13', thumb:'', g:["#F093FB","#F5576C"] },
+    { id:'',title:"Scythe Unboxing — Most Beautiful Game Ever?",      views:7200,  date:'2025-09-29', thumb:'', g:["#4FACFE","#00F2FE"] },
+    { id:'',title:"Pandemic Legacy Full Playthrough",                 views:15900, date:'2025-09-15', thumb:'', g:["#43E97B","#38F9D7"] },
+    { id:'',title:"Spirit Island: Too Complex for New Players?",      views:28100, date:'2025-09-01', thumb:'', g:["#FA709A","#FEE140"] },
+    { id:'',title:"Best Co-op Games for Families",                    views:51300, date:'2025-08-18', thumb:'', g:["#667EEA","#764BA2"] },
+  ];
+
+  document.getElementById('video-feed').innerHTML = MOCK_VIDEOS.map(v => `
+    <div class="video-card">
+      <div class="video-thumb-wrap">
+        <div class="video-thumb" style="background:linear-gradient(135deg,${v.g[0]},${v.g[1]})">
+          <div class="play-btn">▶</div>
+        </div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">${v.title}</div>
+        <div class="video-meta">${fmtCount(v.views)} views · ${timeAgo(v.date)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Fetch real data — overwrites mock on success
+  async function loadYouTube() {
+    try {
+      // 1. Channel info: uploads playlist ID + subscriber count
+      const chanRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=contentDetails,statistics&forHandle=${YT_HANDLE}&key=${YT_KEY}`
+      );
+      const chanData = await chanRes.json();
+      if (!chanData.items?.length) return;
+      const ch         = chanData.items[0];
+      const uploadsId  = ch.contentDetails.relatedPlaylists.uploads;
+      const subCount   = ch.statistics.subscriberCount;
+      if (subCount) document.getElementById('yt-count').textContent = fmtCount(subCount);
+
+      // 2. Latest videos from uploads playlist
+      const plRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${uploadsId}&key=${YT_KEY}`
+      );
+      const plData = await plRes.json();
+      if (!plData.items?.length) return;
+
+      // 3. View counts
+      const ids     = plData.items.map(i => i.snippet.resourceId.videoId).join(',');
+      const stRes   = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids}&key=${YT_KEY}`
+      );
+      const stData  = await stRes.json();
+      const stats   = {};
+      stData.items?.forEach(i => { stats[i.id] = i.statistics; });
+
+      // 4. Render real videos
+      renderVideos(plData.items.map(i => ({
+        id:    i.snippet.resourceId.videoId,
+        title: i.snippet.title,
+        thumb: i.snippet.thumbnails.medium?.url || i.snippet.thumbnails.default?.url || '',
+        date:  i.snippet.publishedAt,
+        views: stats[i.snippet.resourceId.videoId]?.viewCount || 0,
+      })));
+
+    } catch(e) {
+      console.warn('YouTube API unavailable, showing placeholder content.', e);
+    }
+  }
+
+  loadYouTube();
+
+  loadWebsiteConfig();
+
+  // ── TWITCH STATUS ──
+  async function loadTwitch() {
+    try {
+      const res  = await fetch('/.netlify/functions/twitch-status');
+      const data = await res.json();
+
+      // Follower count
+      if (data.followerCount != null)
+        document.getElementById('twitch-count').textContent = fmtCount(data.followerCount);
+
+      // Live banner + embedded player
+      const live = !!data.isLive;
+      document.getElementById('live-banner').classList.toggle('visible', live);
+      document.getElementById('twitch-live-block').style.display = live ? 'block' : 'none';
+
+    } catch(e) {
+      console.warn('Twitch status unavailable.', e);
+    }
+  }
+
+  loadTwitch();
+  setInterval(loadTwitch, 5 * 60 * 1000); // re-check every 5 minutes
+
+  // ── HEART PARTICLE SYSTEM ──
+  (function() {
+    const canvas = document.getElementById('heartCanvas');
+    const ctx    = canvas.getContext('2d');
+    const HEARTS = 55;
+    let particles = [];
+    let W, H;
+
+    function resize() {
+      const col = canvas.parentElement;
+      W = canvas.width  = col.offsetWidth;
+      H = canvas.height = col.offsetHeight;
+    }
+
+    function Particle() { this.reset(true); }
+    Particle.prototype.reset = function(randomStart) {
+      this.speed = Math.random() * 0.9 + 0.2;                        // 0.2–1.1 px/frame (slow)
+      this.size  = Math.min(this.speed * 35 + Math.random() * 15 + 10, 66); // 10–66px
+      this.x     = randomStart ? Math.random() * W : W + this.size;
+      this.y     = Math.random() * H;
+      this.vy    = (Math.random() - 0.5) * 0.15;                     // tiny vertical drift
+      this.maxOp = (this.speed / 1.1) * 0.08 + 0.025;               // 0.025–0.10
+      this.op    = randomStart ? this.maxOp * Math.random() : 0;
+      const purples = ['#cc88ff','#b866ff','#ff88ee','#dd77ff','#aa55ee'];
+      this.color = purples[Math.floor(Math.random() * purples.length)];
+    };
+    Particle.prototype.update = function(delta) {
+      this.x -= this.speed * delta;
+      this.y += this.vy * delta;
+      const fade = 80;
+      // clamp to 0 so no negative globalAlpha flicker at spawn/despawn
+      const rightFade = Math.max(0, (W - this.x) / fade);
+      const leftFade  = Math.max(0, this.x / fade);
+      if      (this.x > W - fade) this.op = this.maxOp * Math.min(rightFade, 1);
+      else if (this.x < fade)     this.op = this.maxOp * Math.min(leftFade,  1);
+      else                        this.op = this.maxOp;
+      if (this.x < -this.size) this.reset(false);
+    };
+    Particle.prototype.draw = function() {
+      if (this.size < 4 || this.op <= 0) return;
+      ctx.save();
+      ctx.globalAlpha  = this.op;
+      ctx.fillStyle    = this.color;
+      ctx.font         = `${this.size}px serif`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♥', this.x, this.y);
+      ctx.restore();
+    };
+
+    function init() {
+      resize();
+      particles = Array.from({length: HEARTS}, () => new Particle());
+    }
+    let lastTime = 0;
+    function animate(timestamp) {
+      // delta = 1.0 at 60fps; capped at 3 to prevent a huge jump if tab was backgrounded
+      const delta = lastTime ? Math.min((timestamp - lastTime) / 16.667, 3) : 1;
+      lastTime = timestamp;
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(p => { p.update(delta); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+
+    // ResizeObserver instead of window resize — won't fire during scroll
+    new ResizeObserver(resize).observe(canvas.parentElement);
+    init();
+    animate();
+  })();
+
+  function toggleMode() {
+    const isLight = document.body.classList.toggle('light');
+    document.getElementById('mode-toggle').textContent = isLight ? '🌙 Dark' : '☀ Light';
+    localStorage.setItem('ihbg-mode', isLight ? 'light' : 'dark');
+  }
+  if (localStorage.getItem('ihbg-mode') === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('mode-toggle').textContent = '🌙 Dark';
+  }
+</script>
+</body>
+</html>
