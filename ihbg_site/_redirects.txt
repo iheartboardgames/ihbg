@@ -1,9 +1,0 @@
-/dailycover/*     https://thedailycover.netlify.app/:splat          200
-/dailyrulebook/*  https://thedailyrulebook.netlify.app/:splat       200
-/dailyranking/*   https://thedailyranking.netlify.app/:splat        200
-/dailyclover/*    https://thedailyclover.netlify.app/:splat         200
-/wordsslam/*      https://wordsslam.netlify.app/:splat              200
-/bearwords/*      https://bearwords.netlify.app/:splat              200
-/cleversquared/*  https://cleversquared.netlify.app/:splat          200
-/afar/*           https://amessagefromafar.netlify.app/:splat       200
-/mindandmoney/*   https://mindandmoney.netlify.app/:splat           200
