@@ -7,3 +7,6 @@
 /cleversquared/*  https://cleversquared.netlify.app/:splat          200
 /afar/*           https://amessagefromafar.netlify.app/:splat       200
 /mindandmoney/*   https://mindandmoney.netlify.app/:splat           200
+/cloversubmit/*   https://thedailycloversumbit.netlify.app/:splat   200
+/admin/*   	      https://thedailyadmin.netlify.app/:splat          200
+/ihbgsubmit/*     https://ihbggames.netlify.app/:splat              200
